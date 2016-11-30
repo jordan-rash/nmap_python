@@ -37,7 +37,11 @@ class Scanner():
 		pickle.dump(self.scanResults, open("scanResults.p", "wb"))
 	
 	def sortByPorts(self):
-		shutil.rmtree('./nmap_results') # THIS NEEDS TO BE CLEANER
+		try:
+			shutil.rmtree('./nmap_results') # THIS NEEDS TO BE CLEANER
+		except OSError:
+			pass
+
 		if not os.path.exists("./nmap_results/sortByPort"):
 			os.makedirs("./nmap_results/sortByPort")
 		
