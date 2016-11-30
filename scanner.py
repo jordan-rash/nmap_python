@@ -4,17 +4,19 @@ from __future__ import print_function
 import nmap
 import pickle
 import os
+import pprint
 import argparse
 import sys
 import shutil
 
 class Scanner():
 	
-	def __init__(self, flags = '-n -Pn -sV -O', network = '127.0.0.1', ports = '1-1024', infile = False):
+	def __init__(self, flags = '-n -Pn -sV -O', network = '127.0.0.1', ports = '1-1024', infile = False, wtd = False):
 		self.nm = nmap.PortScanner()
 		self.flags = flags
 		self.inNetwork = network
 		self.inPorts = ports
+		self.writeFile = wtd
 		self.scanResults = dict()
 		if infile:
 			try: 
@@ -33,6 +35,8 @@ class Scanner():
 		self.inPorts = inPorts
 
 	def runScan(self):
+		if self.writeFile:
+			self.flags += " -oN %s.nmap -oG %s.gnmap" % (self.writeFile, self.writeFile)	
 		self.scanResults = self.nm.scan(hosts=self.inNetwork, ports=self.inPorts, arguments=self.flags)
 		pickle.dump(self.scanResults, open("scanResults.p", "wb"))
 	
@@ -52,23 +56,28 @@ class Scanner():
 			except KeyError:
 				pass
 
+	def printResults(self):
+		pprint.pprint(self.scanResults)
+
 
 if __name__ == "__main__":
 	p = argparse.ArgumentParser(description='Python NMAP Wrapper', formatter_class=argparse.RawTextHelpFormatter)
 	p.add_argument('-n', '--network', help='Set the network to scan. Can include CIDR.\nDEFAULT = 127.0.0.1')
 	p.add_argument('-p', '--ports', help='Set the ports or port range for scan.\nDEFAULT = 1-1024')
 	p.add_argument('-f', '--flags', help="Set NMAP flags for scan. Space delimited.\nDEFAULT = -n -Pn -sV -O")
+	p.add_argument('-w', '--wtd', help='Write output to disk (save .nmap and .gnmap to working directory.\nDEFAULT=False', metavar='FILENAME')
 	p.add_argument('--infile', help="Used for debugging. Uses Python pickle file from previous scan to save time.\nDEFAULT = Looks for file ./scanResults.p", action="store_true") 
 	flags = vars(p.parse_args())
 	userIn = ""
 
 	for x in flags:
 		if flags[x]:
-			userIn += ('%s="%s",' % (x,flags[x]))
-
+			userIn += ('%s="%s",' % (x,flags[x].lstrip()))
 	scanner = eval("Scanner(%s)" % userIn[:-1])
 	if p.parse_args().infile:
 		scanner.sortByPorts()
+		scanner.printResults()
 	else:
 		scanner.runScan()
 		scanner.sortByPorts()
+		scanner.printResults()
