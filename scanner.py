@@ -11,8 +11,15 @@ import shutil
 
 class Scanner():
 	
-	def __init__(self, flags = '-n -Pn -sV -O', network = '127.0.0.1', ports = '1-1024', infile = False, wtd = False):
-		self.nm = nmap.PortScanner()
+	def __init__(self, flags = '-n -Pn -sV -O', network = '127.0.0.1', ports = '1-1024', infile = None, wtd = None, async = None):
+		if async:
+			self.nm = nmap.PortScannerAsync()
+			self.completed = 0
+			self.ticks = 0
+			self.percent = 0
+		else:
+			self.nm = nmap.PortScanner()
+		self.async = async
 		self.flags = flags
 		self.inNetwork = network
 		self.inPorts = ports
@@ -35,10 +42,37 @@ class Scanner():
 		self.inPorts = inPorts
 
 	def runScan(self):
-		if self.writeFile:
-			self.flags += " -oN %s.nmap -oG %s.gnmap" % (self.writeFile, self.writeFile)	
-		self.scanResults = self.nm.scan(hosts=self.inNetwork, ports=self.inPorts, arguments=self.flags)
+		if self.writeFile:	
+			if not os.path.exists("./nmap_results/output"):
+				os.makedirs("./nmap_results/output")
+			self.flags += " -oN ./nmap_results/output/%s.nmap -oG ./nmap_results/output/%s.gnmap" % (self.writeFile, self.writeFile)
+		
+		if self.async:
+			self.scanResults = self.nm.scan(hosts=self.inNetwork, ports=self.inPorts, arguments=self.flags, callback=self.statusMonitor)
+			sys.stdout.write("[%s] 0%%\r" % (" " * 50))
+			sys.stdout.flush()
+			#sys.stdout.write("\b" * 51)
+			#sys.stdout.flush()
+			while self.nm.still_scanning():
+				continue
+		else:
+			self.scanResults = self.nm.scan(hosts=self.inNetwork, ports=self.inPorts, arguments=self.flags)
+	
+		try:
+			open("./nmap_results/output/%s.xml" % self.writeFile, "w").write(self.nm.get_nmap_last_output())
+		except (IOError, OSError, AttributeError):
+			pass
+		
 		pickle.dump(self.scanResults, open("scanResults.p", "wb"))
+	
+	def statusMonitor(self, host, results):
+		self.completed += 1
+		opercent = self.percent
+		self.percent = int((self.completed / float(256)) * 100)
+		if self.percent % 2 == 0 and opercent != self.percent:
+			self.ticks += 1
+		sys.stdout.write("[%s%s] %s%%\r" % (("-" * self.ticks), " " * (50 - self.ticks), self.percent))
+		sys.stdout.flush()	
 	
 	def sortByPorts(self):
 		try:
@@ -53,7 +87,7 @@ class Scanner():
 			try:
 				for y in self.scanResults['scan'][x]['tcp'].keys():
 					open("./nmap_results/sortByPort/%s" % (y), "a").write("%s\n" % (x))
-			except KeyError:
+			except (KeyError, TypeError):
 				pass
 
 	def printResults(self):
@@ -67,17 +101,18 @@ if __name__ == "__main__":
 	p.add_argument('-f', '--flags', help="Set NMAP flags for scan. Space delimited.\nDEFAULT = -n -Pn -sV -O")
 	p.add_argument('-w', '--wtd', help='Write output to disk (save .nmap and .gnmap to working directory.\nDEFAULT=False', metavar='FILENAME')
 	p.add_argument('--infile', help="Used for debugging. Uses Python pickle file from previous scan to save time.\nDEFAULT = Looks for file ./scanResults.p", action="store_true") 
+	p.add_argument('--async', help="Used for running hosts asynchronusly.  Can get status updates with this option.\nDEFAULT = No", action="store_true") 
 	flags = vars(p.parse_args())
 	userIn = ""
 
 	for x in flags:
 		if flags[x]:
-			userIn += ('%s="%s",' % (x,flags[x].lstrip()))
+			userIn += ('%s="%s",' % (x,flags[x]))
 	scanner = eval("Scanner(%s)" % userIn[:-1])
 	if p.parse_args().infile:
 		scanner.sortByPorts()
 		scanner.printResults()
 	else:
 		scanner.runScan()
-		scanner.sortByPorts()
-		scanner.printResults()
+		#scanner.sortByPorts()
+		#scanner.printResults()
