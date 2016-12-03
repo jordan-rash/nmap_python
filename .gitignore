@@ -1,3 +1,4 @@
 *.p
+*.bkp
 *swp
 nmap_results/
