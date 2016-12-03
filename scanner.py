@@ -51,9 +51,11 @@ class Scanner():
 			except IOError:
 				print("No file exists, must run a scan first")
 				sys.exit()
-		self.cnx = msc.connect(user='root', password='password', host='127.0.0.1', database='nmap_test')
-		self.cursor = cnx.cursor()
-		self.cursor.execute("TRUNCATE services")
+		cnx = msc.connect(user='root', password='password', host='127.0.0.1', database='nmap_test')
+		cursor = cnx.cursor()
+		cursor.execute("TRUNCATE services")
+		cursor.close()
+		cnx.close()
 	
 	def setFlags(self, inFlags):
 		self.flags = inFlags
@@ -119,26 +121,29 @@ class Scanner():
 			pass
 
 	def parseData(self):
+		cnx = msc.connect(user='root', password='password', host='127.0.0.1', database='nmap_test')
+		cursor = cnx.cursor()
 		try:
 			for i in self.scanResults['scan']:
 				try:
 					for s in self.scanResults['scan'][i]["tcp"]:
 						add_service = ('INSERT INTO services (host, tool, service, port, protocol, state, interface, version) VALUES ("%s", "%s", "%s", %s, "%s", "%s", "%s", "%s")' % (str(i), "nmap", str(self.scanResults["scan"][i]["tcp"][s]["name"]), int(s), "tcp", str(self.scanResults["scan"][i]["status"]["state"]), str(self.scanResults["scan"][i]["tcp"][s]["product"]), str(self.scanResults["scan"][i]["tcp"][s]["extrainfo"])))
-						self.cursor.execute(add_service)	
-						self.cnx.commit()
+						cursor.execute(add_service)	
+						cnx.commit()
 				except KeyError:
 					pass
 			for i in self.scanResults['scan']:
 				try:
 					for s in self.scanResults['scan'][i]["udp"]:
 						add_service = ('INSERT INTO services (host, tool, service, port, protocol, state, interface, version) VALUES ("%s", "%s", "%s", %s, "%s", "%s", "%s", "%s")' % (str(i), "nmap", str(self.scanResults["scan"][i]["udp"][s]["name"]), int(s), "udp", str(self.scanResults["scan"][i]["status"]["state"]), str(self.scanResults["scan"][i]["udp"][s]["product"]), str(self.scanResults["scan"][i]["udp"][s]["extrainfo"])))
-						self.cursor.execute(add_service)	
-						self.cnx.commit()
+						cursor.execute(add_service)	
+						cnx.commit()
 				except KeyError:
 					pass
 		except TypeError:
 			pass
-		self.cnx.close()
+		cursor.close()
+		cnx.close()
 		return "Scan results parsed into database."
 
 	def printResults(self):
