@@ -166,14 +166,14 @@ if __name__ == "__main__":
 
 	g1 = p.add_argument_group("Pre-programmed NMAP Scans", "Suggested NMAP scans to accomplish specific tasks")
 	g1.add_argument('-1', help="Basic ping sweep scan. Host that appear up print to screen.\nOPTIONS = -sP", dest="preone",  action="store_true")
-	g1.add_argument('-2', help="Returns machines with port PORTNUM open.", dest="pretwo", metavar='PORTNUM')
+	g1.add_argument('-2', help="Returns machines with port PORTNUM open.\nOPTIONS = --open -sV -p PORTNUM", dest="pretwo", metavar='PORTNUM')
 	g1.add_argument('-3', help="Aggressive scan.  Will take a very long time. **Parsed into database**\nOPTIONS = -n -Pn -sV -O -T4 --reason", dest="prethree", action="store_true")
 	g1.add_argument('-4', help="Place holder for scan type 4 with NSE support.\nCurrently does nothing.", dest="prefour", action="store_true")
 
 	p.add_argument('-n', '--network', help='Set the network to scan. Can include CIDR.\nDEFAULT = 127.0.0.1')
 	p.add_argument('-p', '--ports', help='Set the ports or port range for scan.\nDEFAULT = 1-1024')
-	p.add_argument('-f', '--flags', help="Set NMAP flags for scan, space delimited. **Will override mode.**\nDEFAULT = -n -Pn -sV -O")
-	p.add_argument('-w', '--wtd', help='Write output to disk (save .nmap and .gnmap to working directory.\nDEFAULT = False', metavar='FILENAME')
+	p.add_argument('-f', '--flags', help="Set NMAP flags for scan, space delimited. **Will be overriden by pre-programed selection.**\nDEFAULT = -n -Pn -sV -O")
+	p.add_argument('-w', '--wtd', help='Write output to disk (save .nmap and .gnmap to ./nmap_results/output). **Can NOT be used with --async**.\nDEFAULT = False', metavar='FILENAME')
 	p.add_argument('--infile', help="Used for debugging. Uses Python pickle file from previous scan to save time.\nDEFAULT = Looks for file ./.scanResults.p", action="store_true") 
 	p.add_argument('--async', help="Used for running hosts asynchronusly.  Can get status updates with this option.\nDEFAULT = False", action="store_true") 
 	p.add_argument('--parse', help="Parse into existing MySQL database. The -3 pre-programmed scan does this by default.\nDEFAULT = False", action="store_true")
